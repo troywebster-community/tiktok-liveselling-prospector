@@ -1,0 +1,5 @@
+outputs/
+data/research_records.json
+__pycache__/
+*.pyc
+.env
