@@ -1,0 +1,11 @@
+[
+  {
+    "prospect_id": "EXAMPLE-ONLY",
+    "breaker_brand": "Example Brand (not real)",
+    "seller_type": "UNKNOWN",
+    "live_verified": false,
+    "sms_program": "unknown",
+    "evidence": [],
+    "review_reason": "Example only. Remove before research."
+  }
+]
