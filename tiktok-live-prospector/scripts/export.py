@@ -49,6 +49,8 @@ def compile_data(records):
         try: coverage=float(r.get('score_coverage',0))
         except (ValueError,TypeError):coverage=0
         r['score_coverage']=max(0,min(1,coverage))
+        if r['live_verified'] and str(r.get('country') or '').upper()!='US':
+            reasons.append('LIVE verified but US location not supported; not qualified');r['priority_tier']='review'
         if r['live_verified'] and not reasons:
             r['priority_tier']='high' if score>=70 and coverage>=.6 else ('medium' if score>=45 else 'review')
         r['review_reason']='; '.join(filter(None,[str(r.get('review_reason') or ''),*reasons]))
@@ -73,10 +75,15 @@ def main():
     write_csv(OUT/'review_queue.csv',COLUMNS,review)
     verified=sum(str(x['live_verified']).lower()=='true' for x in prospect)
     emails=sum(bool(x['business_email']) for x in prospect)
+    us_verified=sum(str(x['live_verified']).lower()=='true' and str(x['country']).upper()=='US' for x in prospect)
     high=sum(x['priority_tier']=='high' for x in prospect)
+    medium=sum(x['priority_tier']=='medium' for x in prospect)
+    sms=sum(x['sms_program']=='yes' for x in prospect)
     summary = (
         f"# Research run summary\n\nGenerated UTC: {datetime.now(timezone.utc).isoformat()}\n\n"
         f"- Total research records: {len(prospect)}\n- LIVE verified: {verified}\n"
+        f"- LIVE verified with US location supported (qualified): {us_verified}\n"
+        f"- Medium priority: {medium}\n- SMS opt-in program observed: {sms}\n"
         f"- Public business emails with source: {emails}\n- High priority: {high}\n"
         f"- Review queue: {len(review)}\n- Evidence rows: {len(evid)}\n\n"
         "Read research notes and blocked-source limitations from Claude Code's run narrative.\n"
