@@ -21,7 +21,7 @@ Follow `CLAUDE.md` truth standards at every step. They override anything below.
 Use the `discovery-researcher` agent, split by category (beauty, fashion, collectibles and trading cards, jewelry and crystals, home and kitchen, wellness and supplements, pets, food, thrift and resale). Use queries from the playbook.
 
 ## 4. Evidence tools
-- `python3 scripts/tiktok_public.py profile HANDLE` gives public follower count, bio, bio link, commerce flag and `room_id_live_now` (non-empty means LIVE at time of check: direct `live_activity` evidence dated today).
+- `python3 scripts/tiktok_public.py profile HANDLE` gives public follower count, bio, bio link, commerce flag and commerce flag. `python3 scripts/tiktok_public.py live HANDLE` reads the public LIVE page: the most recent LIVE room, its status (2 = live now, 4 = ended) and start time. Either is direct, dated `live_activity` evidence.
 - `python3 scripts/tiktok_public.py video-date URL` decodes a TikTok video ID into its UTC post date. A dated video that shows or announces a specific LIVE broadcast counts; a plain shoppable video does not.
 - Other LIVE proof: YouTube or Instagram LIVE replays with dates, brand pages announcing a dated TikTok LIVE, news or event listings.
 

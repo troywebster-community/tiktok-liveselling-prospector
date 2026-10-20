@@ -3,10 +3,13 @@
 
 Usage:
   python3 scripts/tiktok_public.py profile HANDLE [HANDLE ...]
+  python3 scripts/tiktok_public.py live HANDLE [HANDLE ...]
   python3 scripts/tiktok_public.py video-date VIDEO_URL_OR_ID [...]
 
 Only reads what TikTok serves to any logged-out visitor. No login, no captcha bypass.
-A non-empty room_id means the account was broadcasting LIVE at the moment of the check.
+`live` reads the public /@HANDLE/live page, which lists the account's most recent LIVE room:
+room_status 2 means broadcasting at check time, 4 means ended; start_utc dates that LIVE.
+The profile page's roomId is often empty even while live, so use `live` for LIVE evidence.
 """
 import json, re, sys, urllib.request
 from datetime import datetime, timezone
@@ -45,10 +48,35 @@ def profile(handle):
         'bio': u.get('signature'),
         'bio_link': (u.get('bioLink') or {}).get('link'),
         'commerce_user': (u.get('commerceUserInfo') or {}).get('commerceUser'),
-        'room_id_live_now': u.get('roomId') or '',
         'followers': s.get('followerCount'),
         'likes': s.get('heartCount'),
         'videos': s.get('videoCount'),
+    })
+    return out
+
+def live(handle):
+    handle = handle.lstrip('@')
+    url = f'https://www.tiktok.com/@{handle}/live'
+    out = {'handle': handle, 'url': url, 'checked_utc': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}
+    try:
+        html = fetch(url)
+    except Exception as e:
+        out['access_status'] = f'blocked ({e.__class__.__name__})'
+        return out
+    m = re.search(r'<script id="SIGI_STATE"[^>]*>(.*?)</script>', html, re.S)
+    if not m:
+        out['access_status'] = 'unresolved'
+        return out
+    info = json.loads(m.group(1)).get('LiveRoom', {}).get('liveRoomUserInfo') or {}
+    room = info.get('liveRoom') or {}
+    start = room.get('startTime')
+    out.update({
+        'access_status': 'accessible' if info else 'not_found',
+        'room_id': (info.get('user') or {}).get('roomId') or '',
+        'room_status': room.get('status'),
+        'title': room.get('title'),
+        'start_utc': datetime.fromtimestamp(start, timezone.utc).strftime('%Y-%m-%d %H:%M') if start else None,
+        'viewers': (room.get('liveRoomStats') or {}).get('userCount'),
     })
     return out
 
@@ -60,8 +88,9 @@ def video_date(v):
     return {'input': v, 'posted_utc': datetime.fromtimestamp(ts, timezone.utc).strftime('%Y-%m-%d %H:%M')}
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3 or sys.argv[1] not in ('profile', 'video-date'):
+    cmds = {'profile': profile, 'live': live, 'video-date': video_date}
+    if len(sys.argv) < 3 or sys.argv[1] not in cmds:
         print(__doc__); raise SystemExit(2)
-    fn = profile if sys.argv[1] == 'profile' else video_date
+    fn = cmds[sys.argv[1]]
     for arg in sys.argv[2:]:
         print(json.dumps(fn(arg), ensure_ascii=False))
